@@ -10,8 +10,12 @@ repackages the matching Linux `.deb`.
 
 ## Update to a new release
 
-Grok Bot's built-in updater does not support Linux, and nothing notifies you
-of new releases. To check for / move to a new version:
+CI (`.github/workflows/update.yml`) checks the update API daily, bumps
+`pkgver`/`_commit`/`sha256sums` for any new release, tags `v<pkgver>` and
+triggers the build — so new releases are normally published automatically.
+
+To check for / move to a new version manually (or to review what the bot
+did):
 
 1. Check the latest stable via the update API (win32 feed as oracle):
    `curl -s 'https://api2.cursor.sh/updates/api/update/win32-x64-user/sand/0.0.0/00000000-0000-0000-0000-000000000000/stable'`
@@ -35,8 +39,10 @@ CI (`.github/workflows/build.yml`) builds the package on every `v*` tag push
 pacman -U https://github.com/Jabbslad/grok-bot-bin/releases/download/v0.24.0/grok-bot-bin-0.24.0-1-x86_64.pkg.tar.zst
 ```
 
-To publish a new version: bump `pkgver`/`_commit`/`sha256sums` in the PKGBUILD,
-commit, then `git tag v<pkgver> && git push --tags`.
+Releases are normally cut automatically by the daily update workflow; to do
+it by hand: bump `pkgver`/`_commit`/`sha256sums` in the PKGBUILD, commit, then
+`git tag v<pkgver> && git push --tags` (a manually pushed tag triggers the
+build on its own — no extra dispatch needed).
 
 The version is pinned (with a real sha256) for predictable builds — upstream
 publishes the linux `.deb` without notice and does not officially support

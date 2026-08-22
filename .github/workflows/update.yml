@@ -1,0 +1,65 @@
+name: Check for new release
+
+on:
+  schedule:
+    - cron: '17 6 * * *' # daily (scheduled runs are disabled after 60 days of repo inactivity; the bot's own commits count as activity)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bump PKGBUILD if a new version is out
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          # Grok Bot's updater has no Linux feed; the win32 feed is the version oracle
+          resp=$(curl -fsSL \
+            'https://api2.cursor.sh/updates/api/update/win32-x64-user/sand/0.0.0/00000000-0000-0000-0000-000000000000/stable')
+          version=$(jq -r .version <<<"$resp")
+          commit=$(jq -r .url <<<"$resp" | sed -E 's#.*/stable/([^/]+)/.*#\1#')
+          current=$(sed -n 's/^pkgver=//p' PKGBUILD)
+
+          if [[ -z "$version" || -z "$commit" || "$version" == "null" ]]; then
+            echo "::error::Could not parse update feed: $resp"
+            exit 1
+          fi
+          if [[ "$version" == "$current" ]]; then
+            echo "Up to date at $version, nothing to do."
+            exit 0
+          fi
+          echo "New release: $current -> $version (commit $commit)"
+
+          # Download the linux .deb and pin its real sha256 (also verifies the
+          # release actually exists before we bump)
+          deb_url="https://downloads.cursor.com/grokbot/stable/${commit}/linux/x64/Grok_Bot_${version}.deb"
+          curl -fsSL --retry 3 "$deb_url" -o /tmp/Grok_Bot.deb
+          sha=$(sha256sum /tmp/Grok_Bot.deb | cut -d' ' -f1)
+
+          sed -i \
+            -e "s/^pkgver=.*/pkgver=${version}/" \
+            -e "s/^_commit=.*/_commit=${commit}/" \
+            -e "s/^sha256sums=.*/sha256sums=('${sha}')/" \
+            PKGBUILD
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PKGBUILD
+          git commit -m "grok-bot-bin ${version}"
+          git tag "v${version}"
+          git push origin "v${version}" HEAD:main
+
+          # A tag pushed with GITHUB_TOKEN does not trigger other workflows;
+          # workflow_dispatch with it does, so start the build explicitly.
+          gh workflow run build.yml --ref "v${version}"
