@@ -26,6 +26,18 @@ makepkg -si
 
 (Or just ask an agent to do this — the steps above are the full procedure.)
 
+## Install from a GitHub release
+
+CI (`.github/workflows/build.yml`) builds the package on every `v*` tag push
+(or manual dispatch) and attaches the `.pkg.tar.zst` to the matching release:
+
+```sh
+pacman -U https://github.com/Jabbslad/grok-bot-bin/releases/download/v0.24.0/grok-bot-bin-0.24.0-1-x86_64.pkg.tar.zst
+```
+
+To publish a new version: bump `pkgver`/`_commit`/`sha256sums` in the PKGBUILD,
+commit, then `git tag v<pkgver> && git push --tags`.
+
 The version is pinned (with a real sha256) for predictable builds — upstream
 publishes the linux `.deb` without notice and does not officially support
 Linux in its updater.
