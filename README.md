@@ -4,9 +4,9 @@ Unofficial Arch Linux package for the [Grok Bot](https://cursor.com) desktop
 agent. Not affiliated with or endorsed by SpaceXAI/Cursor. It repackages the
 official `.deb` published by upstream — no modifications to the app itself.
 
-Grok Bot's built-in updater does not support Linux, so this PKGBUILD resolves
-the latest stable version at build time from Cursor's update API and
-repackages the matching Linux `.deb`.
+Grok Bot's built-in updater does not support Linux, so CI here checks
+Cursor's update API daily and repackages the matching Linux `.deb` —
+releases track upstream stable, usually within a day.
 
 ## Update to a new release
 
@@ -32,15 +32,21 @@ makepkg -si
 
 ## Install from a GitHub release
 
-CI (`.github/workflows/build.yml`) builds the package on every `v*` tag push
-(or manual dispatch) and attaches the `.pkg.tar.zst` to the matching release:
+Grab the newest `.pkg.tar.zst` from the [releases
+page](https://github.com/Jabbslad/grok-bot-bin/releases) and:
 
 ```sh
-pacman -U https://github.com/Jabbslad/grok-bot-bin/releases/download/v0.24.0/grok-bot-bin-0.24.0-1-x86_64.pkg.tar.zst
+pacman -U grok-bot-bin-0.24.0-1-x86_64.pkg.tar.zst  # version shown as an example
 ```
 
-Releases are normally cut automatically by the daily update workflow; to do
-it by hand: bump `pkgver`/`_commit`/`sha256sums` in the PKGBUILD, commit, then
+The package is not in the AUR, so there is no auto-update: to upgrade, just
+install the newer release the same way.
+
+Both steps are automated: `.github/workflows/update.yml` checks the update
+API daily, bumps the PKGBUILD and tags `v<pkgver>`; `.github/workflows/build.yml`
+builds on every `v*` tag push (or manual dispatch) and attaches the
+`.pkg.tar.zst` to the matching release. To cut a release by hand instead: bump
+`pkgver`/`_commit`/`sha256sums` in the PKGBUILD, commit, then
 `git tag v<pkgver> && git push --tags` (a manually pushed tag triggers the
 build on its own — no extra dispatch needed).
 
