@@ -11,11 +11,19 @@ releases track upstream stable, usually within a day.
 ## Install from a GitHub release
 
 Grab the newest `.pkg.tar.zst` from the [releases
-page](https://github.com/Jabbslad/grok-bot-bin/releases) and:
+page](https://github.com/Jabbslad/grok-bot-bin/releases), then install it
+locally:
 
 ```sh
-pacman -U grok-bot-bin-0.24.0-1-x86_64.pkg.tar.zst  # version shown as an example
+curl -LO https://github.com/Jabbslad/grok-bot-bin/releases/download/v0.24.0/grok-bot-bin-0.24.0-1-x86_64.pkg.tar.zst
+sudo pacman -U grok-bot-bin-0.24.0-1-x86_64.pkg.tar.zst  # version shown as an example
 ```
+
+Download first — do not pass the URL straight to `pacman -U`. With the
+default `SigLevel = Required` in `pacman.conf`, pacman insists on fetching
+`<url>.sig` for remote packages, and these releases carry no signature file,
+so the install fails with a 404. Local files fall under
+`LocalFileSigLevel = Optional`, which does not require one.
 
 The package is not in the AUR, so there is no auto-update: to upgrade, just
 install the newer release the same way.
