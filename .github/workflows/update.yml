@@ -6,7 +6,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: write # bump commit + tag
+  actions: write # gh workflow run build.yml below
 
 concurrency:
   group: update
