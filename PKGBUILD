@@ -1,15 +1,16 @@
-# Unofficial repackage of the official Grok_Bot_<version>.deb (electron-builder
-# Debian package). Pinned to a known-good release for predictable builds.
+# Unofficial repackage of the official grok-bot_<version>_amd64.deb
+# (electron-builder Debian package). Pinned to a known-good release for
+# predictable builds.
 #
 # To bump to a new release, edit pkgver, _commit and sha256sums below, then
-# makepkg -si. Find the latest version via the update API (Grok Bot's updater
-# does not support Linux, so the win32 feed is the version oracle):
-#   https://api2.cursor.sh/updates/api/update/win32-x64-user/sand/0.0.0/<uuid>/stable
+# makepkg -si. Find the latest version via the linux-x64 update feed (its
+# download URL carries the release commit):
+#   https://api2.cursor.sh/updates/api/update/linux-x64/sand/0.0.0/<uuid>/stable
 # and download the linux .deb from:
-#   https://downloads.cursor.com/grokbot/stable/<commit>/linux/x64/Grok_Bot_<version>.deb
+#   https://downloads.cursor.com/grokbot/stable/<commit>/linux/x64/grok-bot_<version>_amd64.deb
 pkgname=grok-bot-bin
-pkgver=0.29.0
-_commit=f0e5bfcee649ea84c0c61369cf896cd146d72136
+pkgver=0.30.0
+_commit=2385d097738b3719cc5ecd9281a107aa106215f1
 pkgrel=1
 pkgdesc="Grok Bot desktop agent"
 arch=('x86_64')
@@ -27,19 +28,20 @@ depends=(
   'libsecret'
 )
 optdepends=('libappindicator-gtk3: system tray icon support')
-source=("https://downloads.cursor.com/grokbot/stable/${_commit}/linux/x64/Grok_Bot_${pkgver}.deb")
-noextract=("Grok_Bot_${pkgver}.deb")
+source=("https://downloads.cursor.com/grokbot/stable/${_commit}/linux/x64/grok-bot_${pkgver}_amd64.deb")
+noextract=("grok-bot_${pkgver}_amd64.deb")
 options=('!debug')
-sha256sums=('d223b5830282aef11d5c46d8f4d1edd239bf992e336405cbd288d4476b9233d4')
+sha256sums=('fb888b2204c8a51c71a9f5f9a2913ac10561f3ef6939c1245ecae4e837d4ada2')
 
 package() {
   # Extract the data payload straight out of the .deb (ar archive)
-  bsdtar -xOf "${srcdir}/Grok_Bot_${pkgver}.deb" data.tar.xz \
+  bsdtar -xOf "${srcdir}/grok-bot_${pkgver}_amd64.deb" data.tar.xz \
     | bsdtar -xJf - -C "${pkgdir}"
 
   # The deb's postinst registers /usr/bin/<name> via update-alternatives;
   # ship a plain wrapper instead of a symlink.
-  # Upstream renamed the binary sand -> grok-bot in 0.24.0.
+  # Upstream renamed the binary sand -> grok-bot in 0.24.0 and the .deb to
+  # grok-bot_<version>_amd64.deb in 0.30.0.
   # No Chromium flags: 0.24.0 runs fine fully sandboxed here (the 0.16.0-era
   # SIGILL renderer crashes are fixed upstream; verified 2026-08-22 on Omarchy).
   # If the computer-view pane ever black-screens again, re-add:
