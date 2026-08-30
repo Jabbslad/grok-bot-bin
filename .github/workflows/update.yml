@@ -25,14 +25,17 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Grok Bot's updater has no Linux feed; the win32 feed is the version oracle
+          # The linux-x64 updater feed is the version oracle; its download URL
+          # carries the release commit used in the CDN path
           resp=$(curl -fsSL \
-            'https://api2.cursor.sh/updates/api/update/win32-x64-user/sand/0.0.0/00000000-0000-0000-0000-000000000000/stable')
+            'https://api2.cursor.sh/updates/api/update/linux-x64/sand/0.0.0/00000000-0000-0000-0000-000000000000/stable')
           version=$(jq -r .version <<<"$resp")
           commit=$(jq -r .url <<<"$resp" | sed -E 's#.*/stable/([^/]+)/.*#\1#')
           current=$(sed -n 's/^pkgver=//p' PKGBUILD)
 
-          if [[ -z "$version" || -z "$commit" || "$version" == "null" ]]; then
+          # Validate strictly: the win32 feed once changed URL shape silently
+          # and junk ('win32-x64') passed the old empty-check as the commit.
+          if [[ -z "$version" || "$version" == "null" || ! "$commit" =~ ^[0-9a-f]{40}$ ]]; then
             echo "::error::Could not parse update feed: $resp"
             exit 1
           fi
@@ -44,9 +47,9 @@ jobs:
 
           # Download the linux .deb and pin its real sha256 (also verifies the
           # release actually exists before we bump)
-          deb_url="https://downloads.cursor.com/grokbot/stable/${commit}/linux/x64/Grok_Bot_${version}.deb"
-          curl -fsSL --retry 3 "$deb_url" -o /tmp/Grok_Bot.deb
-          sha=$(sha256sum /tmp/Grok_Bot.deb | cut -d' ' -f1)
+          deb_url="https://downloads.cursor.com/grokbot/stable/${commit}/linux/x64/grok-bot_${version}_amd64.deb"
+          curl -fsSL --retry 3 "$deb_url" -o /tmp/grok-bot.deb
+          sha=$(sha256sum /tmp/grok-bot.deb | cut -d' ' -f1)
 
           sed -i \
             -e "s/^pkgver=.*/pkgver=${version}/" \
