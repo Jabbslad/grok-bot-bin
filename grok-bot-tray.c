@@ -47,10 +47,13 @@ int main(int argc, char **argv) {
   long parsed_pid;
   AppIndicator *indicator;
   GtkWidget *menu;
+  GtkWidget *version_item;
+  GtkWidget *separator;
   GtkWidget *show_item;
   GtkWidget *quit_item;
+  gchar *version_label;
 
-  if (argc != 3)
+  if (argc != 4)
     return EXIT_FAILURE;
 
   parsed_pid = strtol(argv[1], &end, 10);
@@ -68,14 +71,21 @@ int main(int argc, char **argv) {
   app_indicator_set_status(indicator, APP_INDICATOR_STATUS_ACTIVE);
 
   menu = gtk_menu_new();
+  version_label = g_strdup_printf("Version %s", argv[3]);
+  version_item = gtk_menu_item_new_with_label(version_label);
+  separator = gtk_separator_menu_item_new();
   show_item = gtk_menu_item_new_with_label("Show");
   quit_item = gtk_menu_item_new_with_label("Quit");
+  gtk_widget_set_sensitive(version_item, FALSE);
   g_signal_connect(show_item, "activate", G_CALLBACK(show_grok), NULL);
   g_signal_connect(quit_item, "activate", G_CALLBACK(quit_grok), NULL);
+  gtk_menu_shell_append(GTK_MENU_SHELL(menu), version_item);
+  gtk_menu_shell_append(GTK_MENU_SHELL(menu), separator);
   gtk_menu_shell_append(GTK_MENU_SHELL(menu), show_item);
   gtk_menu_shell_append(GTK_MENU_SHELL(menu), quit_item);
   gtk_widget_show_all(menu);
   app_indicator_set_menu(indicator, GTK_MENU(menu));
+  g_free(version_label);
 
   g_timeout_add(500, watch_grok, NULL);
   gtk_main();

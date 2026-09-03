@@ -35,7 +35,7 @@ source=(
 noextract=("grok-bot_${pkgver}_amd64.deb")
 options=('!debug')
 sha256sums=('ed254e819d0f0419a1df9771009363074f65f80d8175d2ee0fc62900087ebd99'
-            'b891d229fffbc7dc2c4ac6f7356736754f648b7dabda7778766ec91638cafa4a')
+            '42248e3792b8d696310d77f18604dc4864edf472f7b6f589e4c56a9f4c5d1645')
 
 build() {
   cc ${CFLAGS} ${CPPFLAGS} -o grok-bot-tray grok-bot-tray.c \
@@ -66,7 +66,7 @@ package() {
 #!/bin/sh
 "/opt/Grok Bot/${_bin}" "\$@" &
 app_pid=\$!
-"/usr/lib/grok-bot/grok-bot-tray" "\${app_pid}" "/opt/Grok Bot/${_bin}" &
+"/usr/lib/grok-bot/grok-bot-tray" "\${app_pid}" "/opt/Grok Bot/${_bin}" "${pkgver}" &
 tray_pid=\$!
 
 cleanup() {
