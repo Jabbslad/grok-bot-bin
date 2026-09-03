@@ -54,7 +54,8 @@ jobs:
           sed -i \
             -e "s/^pkgver=.*/pkgver=${version}/" \
             -e "s/^_commit=.*/_commit=${commit}/" \
-            -e "s/^sha256sums=.*/sha256sums=('${sha}')/" \
+            -e "s/^pkgrel=.*/pkgrel=1/" \
+            -e "s/^sha256sums=.*/sha256sums=('${sha}'/" \
             PKGBUILD
 
           git config user.name 'github-actions[bot]'
