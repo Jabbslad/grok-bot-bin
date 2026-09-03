@@ -11,7 +11,7 @@
 pkgname=grok-bot-bin
 pkgver=0.35.0
 _commit=1c5a6ceb364c4dd53f0069f72cc4239220ed471e
-pkgrel=2
+pkgrel=4
 pkgdesc="Grok Bot desktop agent"
 arch=('x86_64')
 url="https://cursor.com"
@@ -35,7 +35,7 @@ source=(
 noextract=("grok-bot_${pkgver}_amd64.deb")
 options=('!debug')
 sha256sums=('ed254e819d0f0419a1df9771009363074f65f80d8175d2ee0fc62900087ebd99'
-            '42248e3792b8d696310d77f18604dc4864edf472f7b6f589e4c56a9f4c5d1645')
+            '92c7d28d134082ba923f3c699108c28d7972f19ab4463c46b6dce56370e9dfbe')
 
 build() {
   cc ${CFLAGS} ${CPPFLAGS} -o grok-bot-tray grok-bot-tray.c \
