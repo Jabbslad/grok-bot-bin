@@ -11,7 +11,7 @@
 pkgname=grok-bot-bin
 pkgver=0.35.0
 _commit=1c5a6ceb364c4dd53f0069f72cc4239220ed471e
-pkgrel=1
+pkgrel=4
 pkgdesc="Grok Bot desktop agent"
 arch=('x86_64')
 url="https://cursor.com"
@@ -26,12 +26,21 @@ depends=(
   'at-spi2-core'
   'util-linux-libs'
   'libsecret'
+  'libappindicator'
 )
-optdepends=('libappindicator-gtk3: system tray icon support')
-source=("https://downloads.cursor.com/grokbot/stable/${_commit}/linux/x64/grok-bot_${pkgver}_amd64.deb")
+source=(
+  "https://downloads.cursor.com/grokbot/stable/${_commit}/linux/x64/grok-bot_${pkgver}_amd64.deb"
+  'grok-bot-tray.c'
+)
 noextract=("grok-bot_${pkgver}_amd64.deb")
 options=('!debug')
-sha256sums=('ed254e819d0f0419a1df9771009363074f65f80d8175d2ee0fc62900087ebd99')
+sha256sums=('ed254e819d0f0419a1df9771009363074f65f80d8175d2ee0fc62900087ebd99'
+            '92c7d28d134082ba923f3c699108c28d7972f19ab4463c46b6dce56370e9dfbe')
+
+build() {
+  cc ${CFLAGS} ${CPPFLAGS} -o grok-bot-tray grok-bot-tray.c \
+    $(pkg-config --cflags --libs appindicator3-0.1) ${LDFLAGS}
+}
 
 package() {
   # Extract the data payload straight out of the .deb (ar archive)
@@ -55,9 +64,26 @@ package() {
   install -dm755 "${pkgdir}/usr/bin"
   cat > "${pkgdir}/usr/bin/${_bin}" <<EOF
 #!/bin/sh
-exec "/opt/Grok Bot/${_bin}" "\$@"
+"/opt/Grok Bot/${_bin}" "\$@" &
+app_pid=\$!
+"/usr/lib/grok-bot/grok-bot-tray" "\${app_pid}" "/opt/Grok Bot/${_bin}" "${pkgver}" &
+tray_pid=\$!
+
+cleanup() {
+  kill "\${app_pid}" "\${tray_pid}" 2>/dev/null
+}
+
+trap cleanup HUP INT TERM
+wait "\${app_pid}"
+status=\$?
+kill "\${tray_pid}" 2>/dev/null
+wait "\${tray_pid}" 2>/dev/null
+exit "\${status}"
 EOF
   chmod 755 "${pkgdir}/usr/bin/${_bin}"
+
+  install -Dm755 "${srcdir}/grok-bot-tray" \
+    "${pkgdir}/usr/lib/grok-bot/grok-bot-tray"
 
   sed -i "s|^Exec=.*|Exec=/usr/bin/${_bin} %U|" \
     "${pkgdir}/usr/share/applications/${_bin}.desktop"

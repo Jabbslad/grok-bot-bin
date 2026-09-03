@@ -40,6 +40,11 @@ Linux in its updater.
 ## Notes
 
 - `/usr/bin/grok-bot` is a plain wrapper replacing the deb's
-  `update-alternatives` symlink. No Chromium flags: 0.24.0 runs fully
-  sandboxed (the 0.16.0-era renderer SIGILL crashes were fixed upstream).
+  `update-alternatives` symlink. It also runs the Grok Bot tray indicator,
+  which appears in StatusNotifier hosts such as Omarchy's Quickshell bar.
+  The menu offers **Show**, **Open Data Folder**, **Quit**, and a
+  **Version <pkgver>** item that copies the version to the clipboard when
+  clicked; middle-clicking the icon activates Show. No
+  Chromium flags: 0.24.0 runs fully sandboxed (the 0.16.0-era renderer SIGILL
+  crashes were fixed upstream).
 - User data lives in `~/.config/Grok Bot/` and is untouched by upgrades.
