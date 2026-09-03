@@ -9,8 +9,8 @@
 # and download the linux .deb from:
 #   https://downloads.cursor.com/grokbot/stable/<commit>/linux/x64/grok-bot_<version>_amd64.deb
 pkgname=grok-bot-bin
-pkgver=0.35.0
-_commit=1c5a6ceb364c4dd53f0069f72cc4239220ed471e
+pkgver=0.36.0
+_commit=9465f3ae75550511296fabbb7a4b6fc8afe9e408
 pkgrel=1
 pkgdesc="Grok Bot desktop agent"
 arch=('x86_64')
@@ -31,7 +31,7 @@ optdepends=('libappindicator-gtk3: system tray icon support')
 source=("https://downloads.cursor.com/grokbot/stable/${_commit}/linux/x64/grok-bot_${pkgver}_amd64.deb")
 noextract=("grok-bot_${pkgver}_amd64.deb")
 options=('!debug')
-sha256sums=('ed254e819d0f0419a1df9771009363074f65f80d8175d2ee0fc62900087ebd99')
+sha256sums=('948b4177667d9a03915c1aee497e7c5438705393da8083a6af0177288512d07e')
 
 package() {
   # Extract the data payload straight out of the .deb (ar archive)
