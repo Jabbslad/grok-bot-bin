@@ -55,10 +55,18 @@ provides the same name, put `[jabbslad]` before that repository to prefer this o
 
 - `.github/workflows/update.yml` checks daily, updates the PKGBUILD and tags
   `v<pkgver>`, then explicitly dispatches the build workflow.
-- `.github/workflows/build.yml` builds on `v*` tags or manual dispatch, signs
-  packages and the repository database, and publishes to the dedicated
-  `pacman-repo` GitHub release. Version-tag builds also attach the package and
-  signature to the corresponding version release.
+- `.github/workflows/build.yml` builds when changes to `PKGBUILD`,
+  `grok-bot-tray.c`, or the build workflow land on `main`, on `v*` tags, or on
+  manual dispatch. It signs packages and the repository database and publishes
+  to the dedicated `pacman-repo` GitHub release. Version-tag builds also attach
+  the package and signature to the corresponding version release. README-only
+  changes and feature-branch pushes do not trigger builds.
+- For packaging-only changes, increment `pkgrel` in `PKGBUILD` before merging
+  so pacman recognizes the published package as an upgrade. Refresh the tray
+  source checksum when changing it. Rebuilding alone does not increase the
+  package version. The upstream updater resets `pkgrel` to 1 for new versions;
+  its explicit build dispatch remains necessary because pushes made with
+  `GITHUB_TOKEN` do not trigger push workflows.
 - Packages are uploaded before the database. Older package assets are retained
   for clients with cached databases. Database/signature uploads are not atomic;
   if a refresh overlaps publication and fails signature verification, retry
@@ -84,7 +92,7 @@ variable, and replace the public key, fingerprint and repository URLs here.
 
 Download a `.pkg.tar.zst` and its `.sig` from a recent [version
 release](https://github.com/Jabbslad/grok-bot-bin/releases), import and trust the
-key as above, then use `sudo pacman -U ./grok-bot-bin-<version>-1-x86_64.pkg.tar.zst`.
+key as above, then use `sudo pacman -U ./grok-bot-bin-<version>-<pkgrel>-x86_64.pkg.tar.zst`.
 Older releases predating repository signing have no signatures.
 
 Alternatively, run `makepkg -si` in this checkout. This repackages upstream's
@@ -93,5 +101,10 @@ binary; it does not compile the application from source.
 ## Notes
 
 - `/usr/bin/grok-bot` is a plain wrapper replacing the deb's
-  `update-alternatives` symlink, with no extra Chromium flags.
+  `update-alternatives` symlink, with no extra Chromium flags. It also runs
+  the Grok Bot tray indicator in StatusNotifier hosts such as Omarchy's
+  Quickshell bar. The compact menu keeps **Show Grok Bot**, **Open data folder**,
+  and **Copy version (<pkgver>)** together, with **Quit Grok Bot** separated at
+  the bottom. Copy version copies the bare version string; middle-clicking
+  the unchanged app icon shows Grok Bot. Menu styling follows the tray host.
 - User data lives in `~/.config/Grok Bot/` and is untouched by upgrades.
