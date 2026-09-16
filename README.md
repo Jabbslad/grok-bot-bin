@@ -55,10 +55,18 @@ provides the same name, put `[jabbslad]` before that repository to prefer this o
 
 - `.github/workflows/update.yml` checks daily, updates the PKGBUILD and tags
   `v<pkgver>`, then explicitly dispatches the build workflow.
-- `.github/workflows/build.yml` builds on `v*` tags or manual dispatch, signs
-  packages and the repository database, and publishes to the dedicated
-  `pacman-repo` GitHub release. Version-tag builds also attach the package and
-  signature to the corresponding version release.
+- `.github/workflows/build.yml` builds when changes to `PKGBUILD`,
+  `grok-bot-tray.c`, or the build workflow land on `main`, on `v*` tags, or on
+  manual dispatch. It signs packages and the repository database and publishes
+  to the dedicated `pacman-repo` GitHub release. Version-tag builds also attach
+  the package and signature to the corresponding version release. README-only
+  changes and feature-branch pushes do not trigger builds.
+- For packaging-only changes, increment `pkgrel` in `PKGBUILD` before merging
+  so pacman recognizes the published package as an upgrade. Refresh the tray
+  source checksum when changing it. Rebuilding alone does not increase the
+  package version. The upstream updater resets `pkgrel` to 1 for new versions;
+  its explicit build dispatch remains necessary because pushes made with
+  `GITHUB_TOKEN` do not trigger push workflows.
 - Packages are uploaded before the database. Older package assets are retained
   for clients with cached databases. Database/signature uploads are not atomic;
   if a refresh overlaps publication and fails signature verification, retry
