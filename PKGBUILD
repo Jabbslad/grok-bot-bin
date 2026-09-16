@@ -9,9 +9,9 @@
 # and download the linux .deb from:
 #   https://downloads.cursor.com/grokbot/stable/<commit>/linux/x64/grok-bot_<version>_amd64.deb
 pkgname=grok-bot-bin
-pkgver=0.35.0
-_commit=1c5a6ceb364c4dd53f0069f72cc4239220ed471e
-pkgrel=4
+pkgver=0.55.0
+_commit=b4d3f3b656b57c91705c69d2aea9dd31d6428748
+pkgrel=2
 pkgdesc="Grok Bot desktop agent"
 arch=('x86_64')
 url="https://cursor.com"
@@ -34,7 +34,7 @@ source=(
 )
 noextract=("grok-bot_${pkgver}_amd64.deb")
 options=('!debug')
-sha256sums=('ed254e819d0f0419a1df9771009363074f65f80d8175d2ee0fc62900087ebd99'
+sha256sums=('55b3a38e581b9e0c51edc2de255d339b2c7cfedff9a16fdd908e870fb0160a31'
             '92c7d28d134082ba923f3c699108c28d7972f19ab4463c46b6dce56370e9dfbe')
 
 build() {

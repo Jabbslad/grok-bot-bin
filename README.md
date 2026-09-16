@@ -4,47 +4,98 @@ Unofficial Arch Linux package for the [Grok Bot](https://cursor.com) desktop
 agent. Not affiliated with or endorsed by SpaceXAI/Cursor. It repackages the
 official `.deb` published by upstream — no modifications to the app itself.
 
-Grok Bot's built-in updater does not support Linux, so CI here checks
-Cursor's update API daily and repackages the matching Linux `.deb` —
-releases track upstream stable, usually within a day.
+Grok Bot's built-in updater does not support Linux. CI checks Cursor's update
+API daily, pins the new version and SHA256, then builds and publishes a signed
+Arch package. Updates normally follow upstream stable within a day.
 
-## Install from a GitHub release
+## Install from the jabbslad repository
 
-Grab the newest `.pkg.tar.zst` from the [releases
-page](https://github.com/Jabbslad/grok-bot-bin/releases), then install it
-locally:
+For x86_64 Arch Linux. Download the public signing key:
 
 ```sh
-curl -LO https://github.com/Jabbslad/grok-bot-bin/releases/download/v0.24.0/grok-bot-bin-0.24.0-1-x86_64.pkg.tar.zst
-sudo pacman -U grok-bot-bin-0.24.0-1-x86_64.pkg.tar.zst  # version shown as an example
+curl -fLO https://github.com/Jabbslad/grok-bot-bin/releases/download/pacman-repo/repository-key.asc
+gpg --show-keys --with-fingerprint repository-key.asc
 ```
 
-Download first — do not pass the URL straight to `pacman -U`. With the
-default `SigLevel = Required` in `pacman.conf`, pacman insists on fetching
-`<url>.sig` for remote packages, and these releases carry no signature file,
-so the install fails with a 404. Local files fall under
-`LocalFileSigLevel = Optional`, which does not require one.
+Verify the fingerprint against this value before trusting the key:
 
-The package is not in the AUR, so there is no auto-update: to upgrade, just
-install the newer release the same way.
+```text
+98E6 75CA DED4 8D04 F9BA C58D 7D9F 20A3 E0B8 6587
+```
 
-Publishing is fully automated: `.github/workflows/update.yml` checks the
-update API daily, bumps the PKGBUILD and tags `v<pkgver>`;
-`.github/workflows/build.yml` builds on every `v*` tag push (or manual
-dispatch) and attaches the `.pkg.tar.zst` to the matching release.
+```sh
+sudo pacman-key --add repository-key.asc
+sudo pacman-key --lsign-key 98E675CADED48D04F9BAC58D7D9F20A3E0B86587
+sudo cp -a /etc/pacman.conf "/etc/pacman.conf.backup.$(date +%Y%m%d%H%M%S)"
+```
 
-The version is pinned (with a real sha256) for predictable builds — upstream
-publishes the linux `.deb` without notice and does not officially support
-Linux in its updater.
+Add this section once to `/etc/pacman.conf`:
+
+```ini
+[jabbslad]
+SigLevel = Required
+Server = https://github.com/Jabbslad/grok-bot-bin/releases/download/pacman-repo
+```
+
+Install with a full system upgrade (avoid partial upgrades):
+
+```sh
+sudo pacman -Syu jabbslad/grok-bot-bin
+```
+
+Future `pacman -Syu` or `yay -Syu` upgrades include this package. Nothing runs
+unattended on your machine. An existing local installation is the same package
+and does not need to be removed; user data is preserved.
+
+An independently maintained `grok-bot-bin` also exists in AUR. This configured
+binary repository supplies the package instead. If another binary repository
+provides the same name, put `[jabbslad]` before that repository to prefer this one.
+
+## Publishing
+
+- `.github/workflows/update.yml` checks daily, updates the PKGBUILD and tags
+  `v<pkgver>`, then explicitly dispatches the build workflow.
+- `.github/workflows/build.yml` builds on `v*` tags or manual dispatch, signs
+  packages and the repository database, and publishes to the dedicated
+  `pacman-repo` GitHub release. Version-tag builds also attach the package and
+  signature to the corresponding version release.
+- Packages are uploaded before the database. Older package assets are retained
+  for clients with cached databases. Database/signature uploads are not atomic;
+  if a refresh overlaps publication and fails signature verification, retry
+  shortly afterward. Do not disable signature verification.
+- Builds publish serially. Dispatch the current `main` branch to rebuild;
+  do not dispatch old tags, which could publish an older database.
+
+GitHub Actions configuration:
+
+- Secret `REPO_SIGNING_KEY`: ASCII-armored private key dedicated to this
+  repository, without a passphrase for unattended signing.
+- Variable `REPO_KEY_FINGERPRINT`: full signing-key fingerprint shown above.
+- `repository-key.asc`: public key only, safe to commit and distribute.
+
+The private key must never be committed. Keep a secure backup of it and its
+revocation certificate. Anyone with access to this workflow's signing secret
+can publish trusted packages; limit repository write access accordingly.
+
+For a fork, generate your own dedicated signing key, configure the secret and
+variable, and replace the public key, fingerprint and repository URLs here.
+
+## Manual installation or local build
+
+Download a `.pkg.tar.zst` and its `.sig` from a recent [version
+release](https://github.com/Jabbslad/grok-bot-bin/releases), import and trust the
+key as above, then use `sudo pacman -U ./grok-bot-bin-<version>-1-x86_64.pkg.tar.zst`.
+Older releases predating repository signing have no signatures.
+
+Alternatively, run `makepkg -si` in this checkout. This repackages upstream's
+binary; it does not compile the application from source.
 
 ## Notes
 
 - `/usr/bin/grok-bot` is a plain wrapper replacing the deb's
-  `update-alternatives` symlink. It also runs the Grok Bot tray indicator,
-  which appears in StatusNotifier hosts such as Omarchy's Quickshell bar.
-  The menu offers **Show**, **Open Data Folder**, **Quit**, and a
-  **Version <pkgver>** item that copies the version to the clipboard when
-  clicked; middle-clicking the icon activates Show. No
-  Chromium flags: 0.24.0 runs fully sandboxed (the 0.16.0-era renderer SIGILL
-  crashes were fixed upstream).
+  `update-alternatives` symlink, with no extra Chromium flags. It also runs
+  the Grok Bot tray indicator in StatusNotifier hosts such as Omarchy's
+  Quickshell bar. The menu offers **Show**, **Open Data Folder**, **Quit**,
+  and a **Version <pkgver>** item that copies the version to the clipboard;
+  middle-clicking the icon activates Show.
 - User data lives in `~/.config/Grok Bot/` and is untouched by upgrades.
