@@ -3,7 +3,8 @@
 #include <stdlib.h>
 
 #include <gtk/gtk.h>
-#include <libappindicator/app-indicator.h>
+#include <libdbusmenu-glib/server.h>
+#include <libdbusmenu-gtk/parser.h>
 
 static GPid grok_pid;
 static const char *grok_executable;
@@ -61,10 +62,107 @@ static gboolean watch_grok(gpointer data) {
   return G_SOURCE_CONTINUE;
 }
 
+#define TRAY_PATH "/StatusNotifierItem"
+#define MENU_PATH TRAY_PATH "/Menu"
+#define ICON_DIR "/usr/share/icons/hicolor/128x128/apps"
+
+/* AppIndicator is menu-only; export Activate ourselves for left-click Show. */
+static const char tray_xml[] =
+  "<node><interface name='org.kde.StatusNotifierItem'>"
+  "<method name='Activate'><arg type='i' direction='in'/><arg type='i' direction='in'/></method>"
+  "<method name='SecondaryActivate'><arg type='i' direction='in'/><arg type='i' direction='in'/></method>"
+  "<method name='ContextMenu'><arg type='i' direction='in'/><arg type='i' direction='in'/></method>"
+  "<method name='Scroll'><arg type='i' direction='in'/><arg type='s' direction='in'/></method>"
+  "<property name='Category' type='s' access='read'/>"
+  "<property name='Id' type='s' access='read'/>"
+  "<property name='Title' type='s' access='read'/>"
+  "<property name='Status' type='s' access='read'/>"
+  "<property name='IconName' type='s' access='read'/>"
+  "<property name='IconThemePath' type='s' access='read'/>"
+  "<property name='ItemIsMenu' type='b' access='read'/>"
+  "<property name='Menu' type='o' access='read'/>"
+  "</interface></node>";
+
+static void tray_method(GDBusConnection *connection, const gchar *sender,
+                        const gchar *path, const gchar *interface,
+                        const gchar *method, GVariant *parameters,
+                        GDBusMethodInvocation *invocation, gpointer data) {
+  (void)connection;
+  (void)sender;
+  (void)path;
+  (void)interface;
+  (void)parameters;
+
+  if (g_str_equal(method, "Activate") || g_str_equal(method, "SecondaryActivate"))
+    show_grok(NULL, NULL);
+  else if (g_str_equal(method, "ContextMenu"))
+    /* Most hosts render Menu themselves; retain a GTK popup fallback. */
+    gtk_menu_popup_at_pointer(GTK_MENU(data), NULL);
+  /* Scrolling has no action. */
+  g_dbus_method_invocation_return_value(invocation, NULL);
+}
+
+static GVariant *tray_property(GDBusConnection *connection, const gchar *sender,
+                               const gchar *path, const gchar *interface,
+                               const gchar *property, GError **error,
+                               gpointer data) {
+  (void)connection;
+  (void)sender;
+  (void)path;
+  (void)interface;
+  (void)error;
+  (void)data;
+
+  if (g_str_equal(property, "Category")) return g_variant_new_string("ApplicationStatus");
+  if (g_str_equal(property, "Id")) return g_variant_new_string("grok-bot");
+  if (g_str_equal(property, "Title")) return g_variant_new_string("Grok Bot");
+  if (g_str_equal(property, "Status")) return g_variant_new_string("Active");
+  if (g_str_equal(property, "IconName")) return g_variant_new_string("grok-bot");
+  if (g_str_equal(property, "IconThemePath")) return g_variant_new_string(ICON_DIR);
+  if (g_str_equal(property, "ItemIsMenu")) return g_variant_new_boolean(FALSE);
+  if (g_str_equal(property, "Menu")) return g_variant_new_object_path(MENU_PATH);
+  return NULL;
+}
+
+static void registered(GObject *source, GAsyncResult *result, gpointer data) {
+  GError *error = NULL;
+  GVariant *reply = g_dbus_connection_call_finish(G_DBUS_CONNECTION(source), result, &error);
+  (void)data;
+
+  if (reply) {
+    g_variant_unref(reply);
+  } else {
+    g_warning("Could not register Grok Bot tray: %s", error->message);
+    g_error_free(error);
+  }
+}
+
+static void watcher_appeared(GDBusConnection *connection, const gchar *name,
+                             const gchar *owner, gpointer data) {
+  (void)name;
+  (void)data;
+
+  /* Register again if the bar / StatusNotifierWatcher restarts. */
+  g_dbus_connection_call(connection, owner, "/StatusNotifierWatcher",
+                         "org.kde.StatusNotifierWatcher", "RegisterStatusNotifierItem",
+                         g_variant_new("(s)", TRAY_PATH), NULL,
+                         G_DBUS_CALL_FLAGS_NONE, -1, NULL, registered, NULL);
+}
+
 int main(int argc, char **argv) {
   char *end = NULL;
   long parsed_pid;
-  AppIndicator *indicator;
+  GError *error = NULL;
+  GDBusConnection *connection;
+  GDBusNodeInfo *node;
+  DbusmenuServer *server;
+  DbusmenuMenuitem *menu_root;
+  guint registration;
+  guint watcher;
+  static const GDBusInterfaceVTable vtable = {
+    .method_call = tray_method,
+    .get_property = tray_property,
+  };
   GtkWidget *menu;
   GtkWidget *version_item;
   GtkWidget *separator;
@@ -86,13 +184,15 @@ int main(int argc, char **argv) {
 
   gtk_init(&argc, &argv);
 
-  indicator = app_indicator_new("grok-bot", "grok-bot",
-                                APP_INDICATOR_CATEGORY_APPLICATION_STATUS);
-  app_indicator_set_title(indicator, "Grok Bot");
-  app_indicator_set_status(indicator, APP_INDICATOR_STATUS_ACTIVE);
+  connection = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, &error);
+  if (!connection) {
+    g_printerr("Could not connect Grok Bot tray to session bus: %s\n", error->message);
+    g_error_free(error);
+    return EXIT_FAILURE;
+  }
 
   menu = gtk_menu_new();
-  version_label = g_strdup_printf("Copy version (%s)", argv[3]);
+  version_label = g_strdup_printf("Version %s", argv[3]);
   version_item = gtk_menu_item_new_with_label(version_label);
   separator = gtk_separator_menu_item_new();
   show_item = gtk_menu_item_new_with_label("Show Grok Bot");
@@ -112,14 +212,32 @@ int main(int argc, char **argv) {
   gtk_menu_shell_append(GTK_MENU_SHELL(menu), separator);
   gtk_menu_shell_append(GTK_MENU_SHELL(menu), quit_item);
   gtk_widget_show_all(menu);
-  app_indicator_set_menu(indicator, GTK_MENU(menu));
-  /* Middle-click on the tray icon activates Show. */
-  app_indicator_set_secondary_activate_target(indicator, show_item);
   g_free(version_label);
+
+  server = dbusmenu_server_new(MENU_PATH);
+  menu_root = dbusmenu_gtk_parse_menu_structure(menu);
+  dbusmenu_server_set_root(server, menu_root);
+  g_object_unref(menu_root);
+  node = g_dbus_node_info_new_for_xml(tray_xml, NULL);
+  registration = g_dbus_connection_register_object(connection, TRAY_PATH,
+    node->interfaces[0], &vtable, menu, NULL, &error);
+  if (!registration) {
+    g_printerr("Could not export Grok Bot tray: %s\n", error->message);
+    g_error_free(error);
+    return EXIT_FAILURE;
+  }
+  watcher = g_bus_watch_name_on_connection(connection, "org.kde.StatusNotifierWatcher",
+    G_BUS_NAME_WATCHER_FLAGS_NONE, watcher_appeared, NULL, NULL, NULL);
 
   g_timeout_add(500, watch_grok, NULL);
   gtk_main();
 
-  g_object_unref(indicator);
+  g_bus_unwatch_name(watcher);
+  g_dbus_connection_unregister_object(connection, registration);
+  g_dbus_node_info_unref(node);
+  g_object_unref(server);
+  gtk_widget_destroy(menu);
+  g_free(data_dir);
+  g_object_unref(connection);
   return EXIT_SUCCESS;
 }

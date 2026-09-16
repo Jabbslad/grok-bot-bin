@@ -11,7 +11,7 @@
 pkgname=grok-bot-bin
 pkgver=0.55.0
 _commit=b4d3f3b656b57c91705c69d2aea9dd31d6428748
-pkgrel=2
+pkgrel=3
 pkgdesc="Grok Bot desktop agent"
 arch=('x86_64')
 url="https://cursor.com"
@@ -26,7 +26,7 @@ depends=(
   'at-spi2-core'
   'util-linux-libs'
   'libsecret'
-  'libappindicator'
+  'libdbusmenu-gtk3'
 )
 source=(
   "https://downloads.cursor.com/grokbot/stable/${_commit}/linux/x64/grok-bot_${pkgver}_amd64.deb"
@@ -35,11 +35,11 @@ source=(
 noextract=("grok-bot_${pkgver}_amd64.deb")
 options=('!debug')
 sha256sums=('55b3a38e581b9e0c51edc2de255d339b2c7cfedff9a16fdd908e870fb0160a31'
-            '3f53b75535f6740ce31a3ff53429a8c2497d6f050548bba4891e41a74747e1a6')
+            'ff6de52a3df1d63fe7d8c2f56405f99acf244efde5a7c0f0bee4fa6570af5c69')
 
 build() {
   cc ${CFLAGS} ${CPPFLAGS} -o grok-bot-tray grok-bot-tray.c \
-    $(pkg-config --cflags --libs appindicator3-0.1) ${LDFLAGS}
+    $(pkg-config --cflags --libs dbusmenu-gtk3-0.4) ${LDFLAGS}
 }
 
 package() {

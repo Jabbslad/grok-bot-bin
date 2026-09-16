@@ -104,7 +104,25 @@ binary; it does not compile the application from source.
   `update-alternatives` symlink, with no extra Chromium flags. It also runs
   the Grok Bot tray indicator in StatusNotifier hosts such as Omarchy's
   Quickshell bar. The compact menu keeps **Show Grok Bot**, **Open data folder**,
-  and **Copy version (<pkgver>)** together, with **Quit Grok Bot** separated at
-  the bottom. Copy version copies the bare version string; middle-clicking
-  the unchanged app icon shows Grok Bot. Menu styling follows the tray host.
+  and **Version <pkgver>** together, with **Quit Grok Bot** separated at
+  the bottom. Clicking the version copies the bare version string. Left-click
+  or middle-click the icon to show/focus Grok Bot; right-click opens the menu.
+  The helper exposes the standard StatusNotifier activation methods directly
+  instead of AppIndicator's menu-only interface. It supplies the installed icon
+  directory as a fallback so hosts can find the original image even when theme
+  lookup fails. Menu styling follows the tray host.
 - User data lives in `~/.config/Grok Bot/` and is untouched by upgrades.
+
+## Tray regression test
+
+With `python-gobject`, GTK 3, `libdbusmenu-gtk3`, and a graphical session:
+
+```sh
+cc -Wall -Wextra -Werror -o /tmp/grok-bot-tray-test grok-bot-tray.c \
+  $(pkg-config --cflags --libs dbusmenu-gtk3-0.4)
+python tests/test-tray.py /tmp/grok-bot-tray-test
+```
+
+The test uses a private D-Bus session and dummy app. It verifies left/middle
+activation, exported menu actions, icon properties, bar re-registration, and
+tray shutdown without launching Grok or adding an icon to your real bar.
