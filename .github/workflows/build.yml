@@ -8,6 +8,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: publish-jabbslad
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,7 +22,7 @@ jobs:
       # builder user with passwordless sudo (makepkg -s installs missing deps)
       - name: Prepare build user
         run: |
-          pacman -Syu --noconfirm git
+          pacman -Syu --noconfirm git github-cli
           useradd -m builder
           echo 'builder ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/builder
           chmod 440 /etc/sudoers.d/builder
@@ -30,15 +34,64 @@ jobs:
           chown -R builder:builder .
           sudo -u builder makepkg -sf --noconfirm
 
+      - name: Sign package and repository database
+        env:
+          REPO_SIGNING_KEY: ${{ secrets.REPO_SIGNING_KEY }}
+          REPO_KEY_FINGERPRINT: ${{ vars.REPO_KEY_FINGERPRINT }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          GNUPGHOME=$(mktemp -d)
+          export GNUPGHOME
+          trap 'rm -rf "$GNUPGHOME"' EXIT
+          printf '%s' "$REPO_SIGNING_KEY" | gpg --batch --import
+          mkdir -p repository
+          cp ./*.pkg.tar.zst repository/
+          cd repository
+          for package in *.pkg.tar.zst; do
+            gpg --batch --yes --local-user "$REPO_KEY_FINGERPRINT" --detach-sign "$package"
+          done
+          repo-add --sign --key "$REPO_KEY_FINGERPRINT" jabbslad.db.tar.gz ./*.pkg.tar.zst
+          # Release assets must be regular files, not repo-add's symlinks.
+          cp --remove-destination jabbslad.db.tar.gz jabbslad.db
+          cp --remove-destination jabbslad.db.tar.gz.sig jabbslad.db.sig
+          cp --remove-destination jabbslad.files.tar.gz jabbslad.files
+          cp --remove-destination jabbslad.files.tar.gz.sig jabbslad.files.sig
+          gpg --armor --export "$REPO_KEY_FINGERPRINT" > repository-key.asc
+          gpg --verify jabbslad.db.sig jabbslad.db
+          for package in *.pkg.tar.zst; do
+            gpg --verify "$package.sig" "$package"
+          done
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: grok-bot-bin
-          path: '*.pkg.tar.zst'
+          path: repository/*
           if-no-files-found: error
 
       - name: Attach package to release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: '*.pkg.tar.zst'
+          files: |
+            repository/*.pkg.tar.zst
+            repository/*.pkg.tar.zst.sig
+
+      - name: Publish pacman repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! gh release view pacman-repo >/dev/null 2>&1; then
+            gh release create pacman-repo --target "$GITHUB_SHA" \
+              --title 'jabbslad Arch repository' --latest=false \
+              --notes 'Signed pacman repository. See README for installation instructions.'
+          fi
+          cd repository
+          # Keep older packages available for machines with cached databases.
+          # Upload packages before making the new database visible.
+          gh release upload pacman-repo ./*.pkg.tar.zst ./*.pkg.tar.zst.sig repository-key.asc --clobber
+          gh release upload pacman-repo jabbslad.db jabbslad.db.sig jabbslad.files jabbslad.files.sig --clobber
