@@ -84,7 +84,7 @@ variable, and replace the public key, fingerprint and repository URLs here.
 
 Download a `.pkg.tar.zst` and its `.sig` from a recent [version
 release](https://github.com/Jabbslad/grok-bot-bin/releases), import and trust the
-key as above, then use `sudo pacman -U ./grok-bot-bin-<version>-1-x86_64.pkg.tar.zst`.
+key as above, then use `sudo pacman -U ./grok-bot-bin-<version>-<pkgrel>-x86_64.pkg.tar.zst`.
 Older releases predating repository signing have no signatures.
 
 Alternatively, run `makepkg -si` in this checkout. This repackages upstream's
@@ -95,7 +95,8 @@ binary; it does not compile the application from source.
 - `/usr/bin/grok-bot` is a plain wrapper replacing the deb's
   `update-alternatives` symlink, with no extra Chromium flags. It also runs
   the Grok Bot tray indicator in StatusNotifier hosts such as Omarchy's
-  Quickshell bar. The menu offers **Show**, **Open Data Folder**, **Quit**,
-  and a **Version <pkgver>** item that copies the version to the clipboard;
-  middle-clicking the icon activates Show.
+  Quickshell bar. The compact menu keeps **Show Grok Bot**, **Open data folder**,
+  and **Copy version (<pkgver>)** together, with **Quit Grok Bot** separated at
+  the bottom. Copy version copies the bare version string; middle-clicking
+  the unchanged app icon shows Grok Bot. Menu styling follows the tray host.
 - User data lives in `~/.config/Grok Bot/` and is untouched by upgrades.

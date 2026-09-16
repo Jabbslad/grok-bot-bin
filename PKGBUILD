@@ -35,7 +35,7 @@ source=(
 noextract=("grok-bot_${pkgver}_amd64.deb")
 options=('!debug')
 sha256sums=('55b3a38e581b9e0c51edc2de255d339b2c7cfedff9a16fdd908e870fb0160a31'
-            '92c7d28d134082ba923f3c699108c28d7972f19ab4463c46b6dce56370e9dfbe')
+            '3f53b75535f6740ce31a3ff53429a8c2497d6f050548bba4891e41a74747e1a6')
 
 build() {
   cc ${CFLAGS} ${CPPFLAGS} -o grok-bot-tray grok-bot-tray.c \

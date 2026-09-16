@@ -92,12 +92,12 @@ int main(int argc, char **argv) {
   app_indicator_set_status(indicator, APP_INDICATOR_STATUS_ACTIVE);
 
   menu = gtk_menu_new();
-  version_label = g_strdup_printf("Version %s", argv[3]);
+  version_label = g_strdup_printf("Copy version (%s)", argv[3]);
   version_item = gtk_menu_item_new_with_label(version_label);
   separator = gtk_separator_menu_item_new();
-  show_item = gtk_menu_item_new_with_label("Show");
-  open_folder_item = gtk_menu_item_new_with_label("Open Data Folder");
-  quit_item = gtk_menu_item_new_with_label("Quit");
+  show_item = gtk_menu_item_new_with_label("Show Grok Bot");
+  open_folder_item = gtk_menu_item_new_with_label("Open data folder");
+  quit_item = gtk_menu_item_new_with_label("Quit Grok Bot");
   data_dir = g_build_filename(g_get_user_config_dir(), "Grok Bot", NULL);
   g_signal_connect(show_item, "activate", G_CALLBACK(show_grok), NULL);
   g_signal_connect(open_folder_item, "activate", G_CALLBACK(open_data_folder),
@@ -108,9 +108,9 @@ int main(int argc, char **argv) {
                    argv[3]);
   gtk_menu_shell_append(GTK_MENU_SHELL(menu), show_item);
   gtk_menu_shell_append(GTK_MENU_SHELL(menu), open_folder_item);
+  gtk_menu_shell_append(GTK_MENU_SHELL(menu), version_item);
   gtk_menu_shell_append(GTK_MENU_SHELL(menu), separator);
   gtk_menu_shell_append(GTK_MENU_SHELL(menu), quit_item);
-  gtk_menu_shell_append(GTK_MENU_SHELL(menu), version_item);
   gtk_widget_show_all(menu);
   app_indicator_set_menu(indicator, GTK_MENU(menu));
   /* Middle-click on the tray icon activates Show. */
