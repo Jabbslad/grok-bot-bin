@@ -1,3 +1,15 @@
+# Archived
+
+This repository is archived and no longer maintained.
+
+Omarchy users: install Omarchy's own `grok-bot` package. It is delivered through Omarchy's package repository and updated with `omarchy-update`. Source: https://github.com/omacom/omarchy-pkgs/tree/master/pkgbuilds/grok-bot
+
+Plain Arch users: install the AUR package [`grok-bot-bin`](https://aur.archlinux.org/packages/grok-bot-bin). It is a different, community-maintained package with the same name, maintained separately from this repository.
+
+The tray icon helper from this repository is not included in those packages.
+
+The documentation below is kept for reference. The install instructions are historical.
+
 # grok-bot-bin (unofficial)
 
 Unofficial Arch Linux package for the [Grok Bot](https://cursor.com) desktop
@@ -8,7 +20,9 @@ Grok Bot's built-in updater does not support Linux. CI checks Cursor's update
 API daily, pins the new version and SHA256, then builds and publishes a signed
 Arch package. Updates normally follow upstream stable within a day.
 
-## Install from the jabbslad repository
+## Install from the jabbslad repository (historical)
+
+These steps applied while this repository was maintained.
 
 For x86_64 Arch Linux. Download the public signing key:
 
@@ -88,7 +102,7 @@ can publish trusted packages; limit repository write access accordingly.
 For a fork, generate your own dedicated signing key, configure the secret and
 variable, and replace the public key, fingerprint and repository URLs here.
 
-## Manual installation or local build
+## Manual installation or local build (historical)
 
 Download a `.pkg.tar.zst` and its `.sig` from a recent [version
 release](https://github.com/Jabbslad/grok-bot-bin/releases), import and trust the
